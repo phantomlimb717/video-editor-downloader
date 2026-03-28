@@ -4,6 +4,8 @@ Welcome to the **Pro Video Suite**! This application is a handy, all-in-one tool
 
 Whether you're just looking to save a video for offline viewing, trim a long clip, or extract the audio as an MP3, this app has you covered!
 
+![Pro Video Suite Screenshot](screenshot.png)
+
 ---
 
 ## 🟢 For Beginners: Getting Started
