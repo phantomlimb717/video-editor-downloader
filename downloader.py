@@ -6,8 +6,15 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                                QFileDialog, QLabel, QComboBox, QCheckBox, 
                                QMessageBox, QGroupBox, QTextEdit, 
                                QFormLayout, QDoubleSpinBox, QSlider, QLineEdit, QTabWidget)
-from PySide6.QtCore import QThread, Signal, Qt, QUrl
+from PySide6.QtCore import QThread, Signal, Qt, QUrl, qInstallMessageHandler
 from PySide6.QtGui import QTextCursor, QPainter, QColor, QPalette
+
+def qt_message_handler(mode, context, message):
+    if "Late SEI is not implemented" in message:
+        return
+    if "If you want to help, upload a sample" in message and "ffmpeg-devel" in message:
+        return
+    print(message)
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
@@ -634,6 +641,8 @@ class VideoEditorApp(QWidget):
         else: QMessageBox.critical(self, "Error/Stopped", msg)
 
 if __name__ == "__main__":
+    qInstallMessageHandler(qt_message_handler)
+
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     palette = QPalette()
