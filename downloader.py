@@ -390,7 +390,7 @@ class VideoEditorApp(QWidget):
             self.dl_console.append(f">> SUCCESS: Downloaded {result}")
             self.load_video_file(result)
             self.tabs.setCurrentIndex(1) 
-            QMessageBox.showinfo(self, "Download Complete", f"Loaded: {result}\n\nSwitched to Editor tab.")
+            QMessageBox.information(self, "Download Complete", f"Loaded: {result}\n\nSwitched to Editor tab.")
         else:
             self.dl_console.append(f">> FAILED: {result}")
             QMessageBox.critical(self, "Error", result)
