@@ -12,11 +12,15 @@ from PySide6.QtGui import QTextCursor, QPainter, QColor, QPalette, QIcon
 def qt_message_handler(mode, context, message):
     if "Late SEI is not implemented" in message:
         return
-    if "If you want to help, upload a sample" in message and "ffmpeg-devel" in message:
+    if "If you want to help, upload a sample" in message:
+        return
+    if "[h264 @" in message:
         return
     print(message)
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
+
+os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg*=false;qt.multimedia.ffmpeg.libav*=false"
 
 # --- WORKER: DOWNLOADER (yt-dlp) ---
 class DownloadWorker(QThread):
@@ -35,7 +39,7 @@ class DownloadWorker(QThread):
 
             # 1. Get Filename First
             cmd_name = ["yt-dlp", "--get-filename", "-o", "%(title)s.%(ext)s", "--restrict-filenames", self.url]
-            name_proc = subprocess.run(cmd_name, stdout=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore')
+            name_proc = subprocess.run(cmd_name, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding='utf-8', errors='ignore')
             filename = name_proc.stdout.strip()
             # Force mp4 for the intermediate preview file
             filename = os.path.splitext(filename)[0] + ".mp4"
@@ -116,7 +120,11 @@ class ConversionWorker(QThread):
                 if not line and self.process.poll() is not None:
                     break
                 if line:
-                    self.log_output.emit(line.strip())
+                    line_str = line.strip()
+                    if "Late SEI is not implemented" in line_str: continue
+                    if "If you want to help, upload a sample" in line_str: continue
+                    if "[h264 @" in line_str: continue
+                    self.log_output.emit(line_str)
 
             if self.is_cancelled:
                 self.finished.emit(False, "Export Cancelled by User.")
@@ -530,10 +538,12 @@ class VideoEditorApp(QWidget):
     def detect_fps(self):
         try:
             cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", self.input_file]
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, text=True, startupinfo=startupinfo)
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESTDHANDLES | subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, startupinfo=startupinfo)
             parts = result.stdout.strip().split('/')
             if len(parts) == 2: self.fps = float(parts[0]) / float(parts[1])
             else: self.fps = float(result.stdout.strip())
