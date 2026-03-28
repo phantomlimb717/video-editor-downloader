@@ -1,7 +1,9 @@
 # Pro Video Suite (Downloader + Editor)
 
 
-![Pro Video Suite Screenshot 2](screenshot.png)
+| Image Title |
+| :---: |
+| ![Alt Text](screenshot.png) |
 
 Welcome to the **Pro Video Suite**! This application is a handy, all-in-one tool that lets you download videos from YouTube (and other supported sites) and edit them right away.
 
