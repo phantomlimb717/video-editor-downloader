@@ -2,12 +2,12 @@ import sys
 import os
 import subprocess
 import platform
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                               QFileDialog, QLabel, QComboBox, QCheckBox, 
-                               QMessageBox, QGroupBox, QTextEdit, 
+from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+                               QFileDialog, QLabel, QComboBox, QCheckBox,
+                               QMessageBox, QGroupBox, QTextEdit,
                                QFormLayout, QDoubleSpinBox, QSlider, QLineEdit, QTabWidget)
 from PySide6.QtCore import QThread, Signal, Qt, QUrl, qInstallMessageHandler
-from PySide6.QtGui import QTextCursor, QPainter, QColor, QPalette
+from PySide6.QtGui import QTextCursor, QPainter, QColor, QPalette, QIcon
 
 def qt_message_handler(mode, context, message):
     if "Late SEI is not implemented" in message:
@@ -22,7 +22,7 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 class DownloadWorker(QThread):
     progress = Signal(str)
     finished = Signal(bool, str)
-    
+
     def __init__(self, url):
         super().__init__()
         self.url = url
@@ -42,13 +42,13 @@ class DownloadWorker(QThread):
 
             # 2. Download Command
             cmd = [
-                "yt-dlp", 
-                "-S", "vcodec:h264,res,acodec:m4a", 
+                "yt-dlp",
+                "-S", "vcodec:h264,res,acodec:m4a",
                 "-o", "%(title)s.%(ext)s",
                 "--restrict-filenames",
                 self.url
             ]
-            
+
             startupinfo = None
             if os.name == 'nt':
                 startupinfo = subprocess.STARTUPINFO()
@@ -56,15 +56,15 @@ class DownloadWorker(QThread):
                 startupinfo.wShowWindow = subprocess.SW_HIDE
 
             self.process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, 
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding='utf-8', errors='replace', startupinfo=startupinfo
             )
-            
+
             for line in self.process.stdout:
                 line = line.strip()
                 if line:
                     if "[download]" in line: self.progress.emit(line)
-            
+
             self.process.wait()
 
             if self.process.returncode == 0:
@@ -106,7 +106,7 @@ class ConversionWorker(QThread):
                 self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, startupinfo=startupinfo, encoding='utf-8', errors='replace'
             )
-            
+
             while True:
                 if self.is_cancelled:
                     self.process.kill()
@@ -117,7 +117,7 @@ class ConversionWorker(QThread):
                     break
                 if line:
                     self.log_output.emit(line.strip())
-            
+
             if self.is_cancelled:
                 self.finished.emit(False, "Export Cancelled by User.")
             elif self.process.returncode == 0:
@@ -137,7 +137,7 @@ class ConversionWorker(QThread):
 class RangeBar(QWidget):
     def __init__(self):
         super().__init__()
-        self.setFixedHeight(15) 
+        self.setFixedHeight(15)
         self.duration = 100
         self.start_pos = 0
         self.end_pos = 100
@@ -146,20 +146,20 @@ class RangeBar(QWidget):
         self.start_pos = start
         self.end_pos = end
         self.duration = duration if duration > 0 else 100
-        self.update() 
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         width = self.width()
         painter.fillRect(0, 0, width, self.height(), QColor("#333333")) # Background
         if self.duration <= 0: return
-        
+
         x1 = int((self.start_pos / self.duration) * width)
         x2 = int((self.end_pos / self.duration) * width)
         x1 = max(0, min(x1, width))
         x2 = max(0, min(x2, width))
         w_rect = max(x2 - x1, 2)
-        
+
         painter.fillRect(x1, 0, w_rect, self.height(), QColor("#0078D7")) # Selection
 
 # --- MAIN APP ---
@@ -168,14 +168,14 @@ class VideoEditorApp(QWidget):
         super().__init__()
         self.setWindowTitle("Pro Video Suite (Downloader + Editor)")
         self.resize(1000, 950)
-        
+
         # Data
         self.input_file = None
         self.fps = 30.0
         self.duration_ms = 0
         self.start_ms = 0
         self.end_ms = 0
-        self.was_playing_before_scrub = False 
+        self.was_playing_before_scrub = False
         self.loop_enabled = False
 
         # UI Setup
@@ -192,7 +192,7 @@ class VideoEditorApp(QWidget):
         self.tab_editor = QWidget()
         self.setup_editor_tab()
         self.tabs.addTab(self.tab_editor, "2. Editor")
-        
+
         # Audio/Video Backend
         self.setup_player()
 
@@ -207,7 +207,7 @@ class VideoEditorApp(QWidget):
         lbl_title = QLabel("YouTube Downloader")
         lbl_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0078D7;")
         layout.addWidget(lbl_title)
-        
+
         input_group = QGroupBox("Video URL")
         ig_layout = QVBoxLayout()
         self.url_input = QLineEdit()
@@ -255,7 +255,7 @@ class VideoEditorApp(QWidget):
         self.slider.sliderMoved.connect(self.set_position)
         self.slider.setStyleSheet("QSlider::groove:horizontal { height: 4px; background: #333; } QSlider::handle:horizontal { background: #ddd; width: 12px; margin: -4px 0; border-radius: 6px; }")
         t_layout.addWidget(self.slider)
-        
+
         self.range_bar = RangeBar()
         t_layout.addWidget(self.range_bar)
 
@@ -273,11 +273,11 @@ class VideoEditorApp(QWidget):
         self.btn_in = QPushButton("[ Set IN ]")
         self.btn_in.clicked.connect(self.set_in_point)
         self.btn_in.setStyleSheet("background-color: #2e4d34; color: #8fbc8f; border: none; padding: 6px 12px; border-radius: 3px;")
-        
+
         self.btn_out = QPushButton("[ Set OUT ]")
         self.btn_out.clicked.connect(self.set_out_point)
         self.btn_out.setStyleSheet("background-color: #4d2e2e; color: #bc8f8f; border: none; padding: 6px 12px; border-radius: 3px;")
-        
+
         self.btn_reset = QPushButton("Reset")
         self.btn_reset.clicked.connect(self.reset_cut)
         self.btn_reset.setStyleSheet("background-color: #333; color: #aaa; border: none; padding: 6px 12px; border-radius: 3px;")
@@ -286,7 +286,7 @@ class VideoEditorApp(QWidget):
         c_layout.addWidget(self.btn_out)
         c_layout.addWidget(self.btn_reset)
         t_layout.addLayout(c_layout)
-        
+
         self.lbl_trim_info = QLabel("Export Range: Full Video")
         self.lbl_trim_info.setAlignment(Qt.AlignCenter)
         self.lbl_trim_info.setStyleSheet("color: #666; font-size: 11px; margin-top: 5px;")
@@ -316,7 +316,7 @@ class VideoEditorApp(QWidget):
         name_layout.addWidget(lbl_name)
         name_layout.addWidget(self.txt_output_name)
         col1.addLayout(name_layout)
-        
+
         self.chk_gop = QCheckBox("Force Smart Keyframes")
         self.chk_gop.setChecked(True)
         col1.addWidget(self.chk_gop)
@@ -331,19 +331,19 @@ class VideoEditorApp(QWidget):
         self.combo_speed.addItems(["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"])
         self.combo_speed.setCurrentText("medium")
         col2.addRow("Speed:", self.combo_speed)
-        
+
         self.combo_mode = QComboBox()
         self.combo_mode.addItems(["Auto Quality (CRF)", "Target Size (MB)"])
         self.combo_mode.currentIndexChanged.connect(self.toggle_mode)
         col2.addRow("Mode:", self.combo_mode)
-        
+
         self.spin_size = QDoubleSpinBox()
         self.spin_size.setRange(1, 5000)
         self.spin_size.setValue(95.0)
         self.spin_size.setEnabled(False)
         self.spin_size.setSuffix(" MB")
         col2.addRow("Size:", self.spin_size)
-        
+
         s_layout.addLayout(col2)
         settings_group.setLayout(s_layout)
         main_layout.addWidget(settings_group)
@@ -382,10 +382,10 @@ class VideoEditorApp(QWidget):
         if not url:
             self.dl_console.append(">> Error: Please enter a URL.")
             return
-        
+
         self.btn_download.setEnabled(False)
         self.dl_console.clear()
-        
+
         self.dl_worker = DownloadWorker(url)
         self.dl_worker.progress.connect(self.dl_console.append)
         self.dl_worker.finished.connect(self.on_download_complete)
@@ -396,7 +396,7 @@ class VideoEditorApp(QWidget):
         if success:
             self.dl_console.append(f">> SUCCESS: Downloaded {result}")
             self.load_video_file(result)
-            self.tabs.setCurrentIndex(1) 
+            self.tabs.setCurrentIndex(1)
             QMessageBox.information(self, "Download Complete", f"Loaded: {result}\n\nSwitched to Editor tab.")
         else:
             self.dl_console.append(f">> FAILED: {result}")
@@ -425,13 +425,13 @@ class VideoEditorApp(QWidget):
         self.player.play()
         self.btn_play.setText("Pause")
         self.btn_run.setEnabled(True)
-        
+
         filename = os.path.basename(filepath)
         self.btn_browse.setText(f"Loaded: {filename}")
-        
+
         base_name = os.path.splitext(filename)[0]
         self.txt_output_name.setText(f"{base_name}_edit")
-        
+
         self.detect_fps()
         self.log(f">> Loaded: {filename}")
 
@@ -459,11 +459,11 @@ class VideoEditorApp(QWidget):
             return f"{m:02}:{s:02}"
         self.lbl_time.setText(f"{fmt(current_ms)} / {fmt(self.duration_ms)}")
 
-    def slider_pressed(self): 
+    def slider_pressed(self):
         self.was_playing_before_scrub = (self.player.playbackState() == QMediaPlayer.PlayingState)
         self.player.pause()
 
-    def slider_released(self): 
+    def slider_released(self):
         self.player.setPosition(self.slider.value())
         if self.was_playing_before_scrub:
             self.player.play()
@@ -479,7 +479,7 @@ class VideoEditorApp(QWidget):
             self.btn_play.setText("Pause")
 
     def media_status_changed(self, status):
-        if status == QMediaPlayer.EndOfMedia and not self.loop_enabled: 
+        if status == QMediaPlayer.EndOfMedia and not self.loop_enabled:
             self.btn_play.setText("Play")
 
     def set_in_point(self):
@@ -519,7 +519,7 @@ class VideoEditorApp(QWidget):
             self.combo_encoder.addItem("Video - AMD (h264_amf)", "h264_amf")
         else:
             self.combo_encoder.addItem("Video - Standard (libx264)", "libx264")
-        
+
         # --- NEW: Audio Options ---
         self.combo_encoder.addItem("Audio Only (MP3)", "audio_mp3")
         self.combo_encoder.addItem("Audio Only (M4A)", "audio_m4a")
@@ -541,12 +541,12 @@ class VideoEditorApp(QWidget):
 
     def start_encoding(self):
         if not self.input_file: return
-        
+
         custom_name = self.txt_output_name.text().strip()
         if not custom_name: custom_name = "output_video"
-        
+
         input_dir = os.path.dirname(self.input_file)
-        
+
         # --- NEW: Determine Extension ---
         encoder_data = self.combo_encoder.currentData()
         if encoder_data == "audio_mp3":
@@ -555,7 +555,7 @@ class VideoEditorApp(QWidget):
             ext = ".m4a"
         else:
             ext = ".mp4"
-        
+
         output_file = os.path.join(input_dir, f"{custom_name}{ext}")
         # --------------------------------
 
@@ -577,7 +577,7 @@ class VideoEditorApp(QWidget):
         if end_sec < (self.duration_ms / 1000.0): cmd.extend(["-to", f"{end_sec:.3f}"])
 
         cmd.extend(["-i", self.input_file])
-        
+
         # --- NEW: Audio vs Video Logic ---
         if "audio" in encoder_data:
             # AUDIO MODE
@@ -590,8 +590,8 @@ class VideoEditorApp(QWidget):
             # VIDEO MODE
             cmd.extend(["-c:v", encoder_data])
             speed = self.combo_speed.currentText()
-            
-            if self.combo_mode.currentIndex() == 1: 
+
+            if self.combo_mode.currentIndex() == 1:
                 target_mb = self.spin_size.value()
                 bitrate = int(((target_mb * 8192) / duration) - 128)
                 if bitrate < 100: bitrate = 100
@@ -599,9 +599,9 @@ class VideoEditorApp(QWidget):
                 if "libx264" in encoder_data: cmd.extend(["-preset", speed])
                 self.log(f">> Target: {target_mb}MB -> {bitrate}k bitrate")
             else:
-                if "libx264" in encoder_data: 
+                if "libx264" in encoder_data:
                     cmd.extend(["-crf", "23", "-preset", speed])
-                else: 
+                else:
                     cmd.extend(["-b:v", "4000k", "-preset", speed])
 
             vf = ["scale='min(1920,iw)':-2", "format=yuv420p"]
@@ -661,6 +661,25 @@ if __name__ == "__main__":
     palette.setColor(QPalette.HighlightedText, Qt.black)
     app.setPalette(palette)
 
+    # Set App Icon based on OS
+    os_name = platform.system()
+    if os_name == "Windows":
+        try:
+            import ctypes
+            myappid = 'mycompany.myproduct.subproduct.version' # arbitrary string
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except Exception:
+            pass
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videoplayflat_106010.ico")
+    elif os_name == "Darwin":
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videoplayflat_106010.icns")
+    else:
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videoplayflat_106010.png")
+
+    app_icon = QIcon(icon_path)
+    app.setWindowIcon(app_icon)
+
     window = VideoEditorApp()
+    window.setWindowIcon(app_icon)
     window.show()
     sys.exit(app.exec())
