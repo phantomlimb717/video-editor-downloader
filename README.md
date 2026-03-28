@@ -1,7 +1,4 @@
-# Pro Video Suite (Downloader + Editor)
-
-
-| Image Title |
+|  Pro Video Suite (Downloader + Editor) |
 | :---: |
 | ![Alt Text](screenshot.png) |
 
