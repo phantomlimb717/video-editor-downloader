@@ -2,6 +2,9 @@ import sys
 import os
 import subprocess
 import platform
+import urllib.request
+import zipfile
+import stat
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                                QFileDialog, QLabel, QComboBox, QCheckBox,
                                QMessageBox, QGroupBox, QTextEdit,
@@ -32,13 +35,69 @@ class DownloadWorker(QThread):
         self.url = url
         self.process = None
 
+    def _ensure_deno(self):
+        # Determine the correct binary name and URL for the OS
+        system = platform.system()
+        machine = platform.machine().lower()
+
+        if system == "Windows":
+            deno_bin = "deno.exe"
+            url = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip"
+        elif system == "Darwin":
+            deno_bin = "deno"
+            if machine == "arm64" or machine == "aarch64":
+                url = "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-apple-darwin.zip"
+            else:
+                url = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-apple-darwin.zip"
+        else: # Linux
+            deno_bin = "deno"
+            if machine == "aarch64":
+                url = "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip"
+            else:
+                url = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip"
+
+        bin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin")
+        deno_path = os.path.join(bin_dir, deno_bin)
+
+        if os.path.exists(deno_path):
+            return deno_path
+
+        self.progress.emit(">> Downloading JavaScript runtime (Deno)...")
+        os.makedirs(bin_dir, exist_ok=True)
+        zip_path = os.path.join(bin_dir, "deno.zip")
+
+        try:
+            urllib.request.urlretrieve(url, zip_path)
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(bin_dir)
+
+            if system != "Windows":
+                st = os.stat(deno_path)
+                os.chmod(deno_path, st.st_mode | stat.S_IEXEC)
+        except Exception as e:
+            self.progress.emit(f">> Warning: Failed to download Deno ({e}). Continuing without it.")
+            if os.path.exists(deno_path):
+                os.remove(deno_path)
+            return None
+        finally:
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
+
+        self.progress.emit(">> Deno downloaded successfully.")
+        return deno_path
+
     def run(self):
         try:
             self.progress.emit(f">> Starting Download: {self.url}")
             self.progress.emit(">> Forcing H.264 (Safe Mode) for preview compatibility...")
 
+            deno_path = self._ensure_deno()
+            js_runtime_args = []
+            if deno_path:
+                js_runtime_args = ["--js-runtimes", f"deno:{deno_path}"]
+
             # 1. Get Filename First
-            cmd_name = ["yt-dlp", "--get-filename", "-o", "%(title)s.%(ext)s", "--restrict-filenames", self.url]
+            cmd_name = ["yt-dlp"] + js_runtime_args + ["--get-filename", "-o", "%(title)s.%(ext)s", "--restrict-filenames", self.url]
             name_proc = subprocess.run(cmd_name, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding='utf-8', errors='ignore')
             filename = name_proc.stdout.strip()
             # Force mp4 for the intermediate preview file
@@ -46,7 +105,8 @@ class DownloadWorker(QThread):
 
             # 2. Download Command
             cmd = [
-                "yt-dlp",
+                "yt-dlp"
+            ] + js_runtime_args + [
                 "-S", "vcodec:h264,res,acodec:m4a",
                 "-o", "%(title)s.%(ext)s",
                 "--restrict-filenames",
