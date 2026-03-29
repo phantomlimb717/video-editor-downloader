@@ -412,6 +412,10 @@ class VideoEditorApp(QWidget):
         self.spin_size.setSuffix(" MB")
         col2.addRow("Size:", self.spin_size)
 
+        self.combo_aspect = QComboBox()
+        self.combo_aspect.addItems(["Original", "16:9", "9:16", "4:3", "3:4"])
+        col2.addRow("Aspect Ratio:", self.combo_aspect)
+
         s_layout.addLayout(col2)
         settings_group.setLayout(s_layout)
         main_layout.addWidget(settings_group)
@@ -674,7 +678,18 @@ class VideoEditorApp(QWidget):
                 else:
                     cmd.extend(["-b:v", "4000k", "-preset", speed])
 
-            vf = ["scale='min(1920,iw)':-2", "format=yuv420p"]
+            vf = []
+
+            # --- NEW: Aspect Ratio Logic ---
+            aspect_ratio = self.combo_aspect.currentText()
+            if aspect_ratio != "Original":
+                w, h = aspect_ratio.split(":")
+                # Crop to aspect ratio using truncation to ensure even dimensions
+                crop_filter = f"crop='trunc(min(iw, ih*({w}/{h}))/2)*2':'trunc(min(ih, iw*({h}/{w}))/2)*2'"
+                vf.append(crop_filter)
+            # -------------------------------
+
+            vf.extend(["scale='min(1920,iw)':-2", "format=yuv420p"])
             cmd.extend(["-vf", ",".join(vf)])
 
             if self.chk_gop.isChecked():
