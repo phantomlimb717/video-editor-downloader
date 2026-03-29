@@ -24,6 +24,7 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
 os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg*=false;qt.multimedia.ffmpeg.libav*=false"
+os.environ["AV_LOG_LEVEL"] = "quiet"
 
 # --- WORKER: DOWNLOADER (yt-dlp) ---
 class DownloadWorker(QThread):
