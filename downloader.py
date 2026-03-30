@@ -57,7 +57,12 @@ class DownloadWorker(QThread):
             else:
                 url = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip"
 
-        bin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin")
+        if getattr(sys, 'frozen', False):
+            # If running as PyInstaller bundle, save bin to user's app data dir to avoid re-downloading
+            app_data_dir = os.path.join(os.path.expanduser("~"), ".pro-video-suite")
+            bin_dir = os.path.join(app_data_dir, "bin")
+        else:
+            bin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin")
         deno_path = os.path.join(bin_dir, deno_bin)
 
         if os.path.exists(deno_path):
@@ -749,6 +754,12 @@ if __name__ == "__main__":
 
     # Set App Icon based on OS
     os_name = platform.system()
+
+    if getattr(sys, 'frozen', False):
+        base_dir = sys._MEIPASS
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
     if os_name == "Windows":
         try:
             import ctypes
@@ -756,11 +767,11 @@ if __name__ == "__main__":
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         except Exception:
             pass
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videoplayflat_106010.ico")
+        icon_path = os.path.join(base_dir, "videoplayflat_106010.ico")
     elif os_name == "Darwin":
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videoplayflat_106010.icns")
+        icon_path = os.path.join(base_dir, "videoplayflat_106010.icns")
     else:
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videoplayflat_106010.png")
+        icon_path = os.path.join(base_dir, "videoplayflat_106010.png")
 
     app_icon = QIcon(icon_path)
     app.setWindowIcon(app_icon)

@@ -24,7 +24,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon "videoplayflat_106010.ico" "downloader.py"
+        pyinstaller --noconfirm --onefile --windowed --icon "videoplayflat_106010.ico" --add-data "videoplayflat_106010.ico;." --add-data "videoplayflat_106010.icns;." --add-data "videoplayflat_106010.png;." "downloader.py"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
